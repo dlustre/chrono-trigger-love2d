@@ -5,13 +5,15 @@ function lerp(a, b, t)
 end
 
 function melee_attack_steps(actor, target)
-    local prev_coordinates = {
-        x = actor.x,
-        y = actor.y
-    }
+    local prev_coordinates = {}
 
     return {
         function()
+            prev_coordinates = {
+                x = actor.x,
+                y = actor.y
+            }
+
             local destination = {
                 x = lerp(actor.x, target.x, 0.8),
                 y = lerp(actor.y, target.y, 0.8)
@@ -23,7 +25,7 @@ function melee_attack_steps(actor, target)
             target.white_progress = 1
             love.audio.play("assets/sounds/attack-alt.ogg", "stream")
             particle_coordinates.x = target.x + target.w / 2
-            particle_coordinates.y = target.y
+            particle_coordinates.y = target.y + target.h / 2
             init_or_reset_particles()
         end,
         function()

@@ -22,7 +22,7 @@ local particles = {x=0, y=0}
 local image1 = LG.newImage("assets/textures/arrow.png")
 image1:setFilter("linear", "linear")
 
-local ps = LG.newParticleSystem(image1, 4)
+local ps = LG.newParticleSystem(image1, 6)
 ps:setColors(1, 1, 1, 0, 1, 1, 1, 1)
 ps:setDirection(-1.5707963705063)
 ps:setEmissionArea("none", 0, 0, 0, false)
@@ -41,8 +41,8 @@ ps:setSizeVariation(0)
 ps:setSpeed(83.986022949219, 116.09776306152)
 ps:setSpin(0, 0.0020523015409708)
 ps:setSpinVariation(0)
-ps:setSpread(0.83775806427002)
+ps:setSpread(3.1116726398468)
 ps:setTangentialAcceleration(0, 0)
-table.insert(particles, {system=ps, kickStartSteps=0, kickStartDt=0, emitAtStart=2, blendMode="add", shader=nil, texturePath="assets/textures/arrow.png", texturePreset="arrow", shaderPath="", shaderFilename="", x=0, y=0})
+table.insert(particles, {system=ps, kickStartSteps=0, kickStartDt=0, emitAtStart=4, blendMode="add", shader=nil, texturePath="assets/textures/arrow.png", texturePreset="arrow", shaderPath="", shaderFilename="", x=0, y=0})
 
 return particles

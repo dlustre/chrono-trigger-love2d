@@ -2,10 +2,13 @@ require "sound-manager"
 require "character"
 require "enemy"
 require "gamestate"
+require "shader"
 
 local anim8 = require 'lib/anim8'
 local Slab = require 'lib/Slab'
 local sparks_particle_effect = require 'particle-effects/sparks'
+
+local start_time = love.timer.getTime()
 
 function init_or_reset_particles()
     for _, particle_data in ipairs(sparks_particle_effect) do
@@ -59,6 +62,8 @@ ANCHORS = {
 CORNFLOWER_BLUE = { 0.392, 0.584, 0.929 }
 
 function love.load()
+    canvas = love.graphics.newCanvas(WINDOW_WIDTH, WINDOW_HEIGHT, { type = '2d', readable = true })
+
     love.graphics.setDefaultFilter("nearest", "nearest")
 
     love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -228,17 +233,8 @@ function draw_diagnostics()
 end
 
 function love.draw()
+    love.graphics.setCanvas(canvas)
     love.graphics.draw(background, 0, 0, 0, 4)
-
-    for _, particle_data in ipairs(sparks_particle_effect) do
-        love.graphics.setBlendMode(particle_data.blendMode)
-        love.graphics.setShader(particle_data.shader)
-        love.graphics.draw(particle_data.system, particle_coordinates.x, particle_coordinates.y)
-    end
-
-    draw_diagnostics()
-
-    love.graphics.setBlendMode("alpha")
 
     for _, character in ipairs(characters) do
         draw_character_if_alive(character)
@@ -247,6 +243,22 @@ function love.draw()
     for _, enemy in ipairs(enemies) do
         draw_enemy_if_alive(enemy)
     end
+
+    love.graphics.setCanvas()
+    love.graphics.setColor({ 1, 1, 1 })
+    crt_shader:send('millis', love.timer.getTime() - start_time)
+    love.graphics.setShader(crt_shader)
+    love.graphics.draw(canvas, 0, 0)
+    love.graphics.setShader()
+
+    draw_diagnostics()
+
+    for _, particle_data in ipairs(sparks_particle_effect) do
+        love.graphics.setBlendMode(particle_data.blendMode)
+        love.graphics.setShader(particle_data.shader)
+        love.graphics.draw(particle_data.system, particle_coordinates.x, particle_coordinates.y)
+    end
+    love.graphics.setBlendMode("alpha")
 
     Slab.Draw()
 end
