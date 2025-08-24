@@ -1,4 +1,5 @@
 local Slab = require 'lib/Slab'
+local tween = require 'lib/tween'
 
 require "cooldown-bar"
 require "health-bar"
@@ -27,7 +28,7 @@ function new_character(args)
         health_points = 100,
         max_magic_points = 50,
         magic_points = 50,
-        is_getting_attacked = false
+        white_progress = 0
     }
 
     if args then
@@ -73,7 +74,7 @@ function draw_character(character)
     assert(character.animation)
 
     love.graphics.setShader(white_shader)
-    white_shader:send("WhiteFactor", character.is_getting_attacked and 1 or 0)
+    white_shader:send("WhiteFactor", character.white_progress)
 
     character.animation:draw(chrono_sheet, character.x, character.y, 0, 4)
 
@@ -160,13 +161,34 @@ function draw_character_action_menu(character, index)
                 selectable_enemies = enemies_alive(enemies)
                 random_enemy = selectable_enemies[math.random(1, #selectable_enemies)]
 
-                table.insert(action_queue, new_action({
-                    kind = "attack",
-                    actor_entity = character,
-                    target_entity = random_enemy,
-                    damage = 10,
-                    did_fx = false
-                }))
+                local prev_coordinates = {
+                    x = character.x,
+                    y = character.y
+                }
+
+                table.insert(action_queue, {
+                    steps = {function()
+                        table.insert(tweens, tween.new(0.5, character, {
+                            x = random_enemy.x,
+                            y = random_enemy.y + 30
+                        }, "linear"))
+                    end, function()
+                        random_enemy.white_progress = 1
+                        love.audio.play("assets/sounds/attack-alt.ogg", "stream")
+                    end, function()
+                        table.insert(tweens, tween.new(0.1, random_enemy, {
+                            white_progress = 0
+                        }, "linear"))
+                        table.insert(tweens, tween.new(0.2, random_enemy, {
+                            health_points = math.max(0, random_enemy.health_points - 10)
+                        }, "linear"))
+                    end, function()
+                        table.insert(tweens, tween.new(0.5, character, {
+                            x = prev_coordinates.x,
+                            y = prev_coordinates.y
+                        }, "linear"))
+                    end}
+                })
             end
         end
 

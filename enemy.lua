@@ -1,6 +1,8 @@
 require "cooldown-bar"
 require "health-bar"
 
+local tween = require 'lib/tween'
+
 ENEMY_HEIGHT = 100
 ENEMY_WIDTH = 50
 
@@ -19,7 +21,7 @@ function new_enemy(args)
         health_points = 100,
         max_magic_points = 50,
         magic_points = 50,
-        is_getting_attacked = false
+        white_progress = 0
     }
 
     if args then
@@ -37,7 +39,7 @@ function draw_enemy(enemy)
     assert(enemy.animation)
 
     love.graphics.setShader(white_shader)
-    white_shader:send("WhiteFactor", enemy.is_getting_attacked and 1 or 0)
+    white_shader:send("WhiteFactor", enemy.white_progress)
 
     enemy.animation:draw(chrono_sheet, enemy.x, enemy.y, 0, 4)
 
@@ -101,13 +103,34 @@ function update_enemy(enemy, dt, index)
         selectable_characters = characters_alive(characters)
         random_character = selectable_characters[math.random(1, #selectable_characters)]
 
-        table.insert(action_queue, new_action({
-            kind = "attack",
-            actor_entity = enemy,
-            target_entity = random_character,
-            damage = 5,
-            did_fx = false
-        }))
+        local prev_coordinates = {
+            x = enemy.x,
+            y = enemy.y
+        }
+
+        table.insert(action_queue, {
+            steps = {function()
+                table.insert(tweens, tween.new(0.5, enemy, {
+                    x = random_character.x,
+                    y = random_character.y - 30
+                }, "linear"))
+            end, function()
+                random_character.white_progress = 1
+                love.audio.play("assets/sounds/attack-alt.ogg", "stream")
+            end, function()
+                table.insert(tweens, tween.new(0.1, random_character, {
+                    white_progress = 0
+                }, "linear"))
+                table.insert(tweens, tween.new(0.2, random_character, {
+                    health_points = math.max(0, random_character.health_points - 10)
+                }, "linear"))
+            end, function()
+                table.insert(tweens, tween.new(0.5, enemy, {
+                    x = prev_coordinates.x,
+                    y = prev_coordinates.y
+                }, "linear"))
+            end}
+        })
     end
 
     if game_is_idle() then

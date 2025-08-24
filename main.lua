@@ -39,23 +39,6 @@ ANCHORS = {
 
 CORNFLOWER_BLUE = {0.392, 0.584, 0.929}
 
-function new_action(args)
-    action = {
-        kind = "attack",
-        duration_sec = 0.5,
-        actor_entity = nil,
-        target_entity = nil
-    }
-
-    if args then
-        for k, v in pairs(args) do
-            action[k] = v
-        end
-    end
-
-    return action
-end
-
 function change_state(kind)
     if kind == STATE_IDLE then
         game_state = {
@@ -203,40 +186,20 @@ function love.update(dt)
     elseif game_is_action() then
         assert(current_action)
 
-        if current_action.kind == "attack" then
-            if not current_action.did_fx then
-                current_action.did_fx = true
-                current_action.target_entity.is_getting_attacked = true
-                table.insert(tweens, tween.new(0.3, current_action.target_entity, {
-                    x = current_action.target_entity.x + 10
-                }, "outBounce"))
-                love.audio.play("assets/sounds/attack-alt.ogg", "stream")
-            end
-
-            current_action.duration_sec = math.max(0, current_action.duration_sec - dt)
-
-            if current_action.duration_sec <= 0 then
-                target_entity = current_action.target_entity
-
-                target_entity.is_getting_attacked = false
-
-                assert(target_entity.health_points and target_entity.health_points > 0 and current_action.damage and
-                           current_action.damage >= 0)
-
-                table.insert(tweens, tween.new(0.5, target_entity, {
-                    x = target_entity.x - 10
-                }, "linear"))
-
-                table.insert(tweens, tween.new(0.2, target_entity, {
-                    health_points = target_entity.health_points - current_action.damage
-                }, "linear"))
-
-                change_state(STATE_IDLE)
-                current_action = nil
-            end
-        else
-            error("unknown action kind")
+        if #tweens > 0 then
+            return
         end
+
+        current_step = table.remove(current_action.steps, 1)
+
+        if current_step == nil then
+            current_action = nil
+            change_state(STATE_IDLE)
+            return
+        end
+
+        current_step()
+
     else
         error("unknown game state")
     end
@@ -246,14 +209,14 @@ function draw_diagnostics()
     love.graphics.setColor(0, 0.4, 0.6)
     love.graphics.print("state: " .. game_state.kind, 10, 10)
 
-    if current_action then
-        assert(current_action.actor_entity.name)
-        assert(current_action.target_entity.name)
+    -- if current_action then
+    --     assert(current_action.actor_entity.name)
+    --     assert(current_action.target_entity.name)
 
-        love.graphics.print("current_action: " .. (current_action.actor_entity.name) .. " " .. (current_action.kind) ..
-                                " -> " .. (current_action.target_entity.name) .. " " .. (current_action.duration_sec),
-            10, 30)
-    end
+    --     love.graphics.print("current_action: " .. (current_action.actor_entity.name) .. " " .. (current_action.kind) ..
+    --                             " -> " .. (current_action.target_entity.name) .. " " .. (current_action.duration_sec),
+    --         10, 30)
+    -- end
 
     love.graphics.print("action_queue: " .. #action_queue, 10, 50)
     for index, action in ipairs(action_queue) do
