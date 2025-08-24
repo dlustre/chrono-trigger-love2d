@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["cooldown"],
+  "cSpell.words": ["cooldown", "tweens"],
   "Lua.diagnostics.globals": ["love"],
   "Lua.diagnostics.disable": ["lowercase-global"]
 }

@@ -1,5 +1,6 @@
 require "cooldown-bar"
 require "health-bar"
+require "attack"
 
 local tween = require 'lib/tween'
 
@@ -52,7 +53,8 @@ function draw_enemy(enemy)
     love.graphics.print("x: " .. enemy.x, enemy.x, enemy.y + enemy.h + 50)
     love.graphics.print("y: " .. enemy.y, enemy.x, enemy.y + enemy.h + 70)
 
-    love.graphics.print({{1, 1, 1, enemy.damage_text_opacity}, enemy.damage_text}, enemy.x + enemy.w + 10, enemy.y - 10,
+    love.graphics.print({ { 1, 1, 1, enemy.damage_text_opacity }, enemy.damage_text }, enemy.x + enemy.w + 10,
+        enemy.y - 10,
         0, 3)
 
     draw_health_bar(enemy.health_points / enemy.max_health_points, enemy.x, enemy.y + enemy.h + 10)
@@ -108,38 +110,8 @@ function update_enemy(enemy, dt, index)
         selectable_characters = characters_alive(characters)
         local random_character = selectable_characters[math.random(1, #selectable_characters)]
 
-        local prev_coordinates = {
-            x = enemy.x,
-            y = enemy.y
-        }
-
         table.insert(action_queue, {
-            steps = {function()
-                table.insert(tweens, tween.new(0.5, enemy, {
-                    x = random_character.x,
-                    y = random_character.y - 30
-                }, "linear"))
-            end, function()
-                random_character.white_progress = 1
-                love.audio.play("assets/sounds/attack-alt.ogg", "stream")
-            end, function()
-                table.insert(tweens, tween.new(0.4, random_character, {
-                    white_progress = 0
-                }, "linear"))
-                table.insert(tweens, tween.new(0.2, random_character, {
-                    health_points = math.max(0, random_character.health_points - 10)
-                }, "linear"))
-                random_character.damage_text = 10
-                random_character.damage_text_opacity = 1
-            end, function()
-                table.insert(tweens, tween.new(0.5, enemy, {
-                    x = prev_coordinates.x,
-                    y = prev_coordinates.y
-                }, "linear"))
-                table.insert(tweens, tween.new(0.1, random_character, {
-                    damage_text_opacity = 0
-                }, "linear"))
-            end}
+            steps = melee_attack_steps(enemy, random_character)
         })
     end
 

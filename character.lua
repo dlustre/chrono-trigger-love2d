@@ -4,6 +4,7 @@ local tween = require 'lib/tween'
 require "cooldown-bar"
 require "health-bar"
 require "shader"
+require "attack"
 
 CHARACTER_HEIGHT = 100
 CHARACTER_WIDTH = 50
@@ -11,7 +12,7 @@ CHARACTER_WIDTH = 50
 CHARACTER_ACTION_MENU_WIDTH = 25
 CHARACTER_ACTION_MENU_HEIGHT = 100
 
-CHARACTER_ACTION_OPTIONS = {"Attack", "Combo", "Item"}
+CHARACTER_ACTION_OPTIONS = { "Attack", "Combo", "Item" }
 
 function new_character(args)
     enemy = {
@@ -85,7 +86,7 @@ function draw_character(character)
     love.graphics.print("x: " .. character.x, character.x, character.y + character.h + 50)
     love.graphics.print("y: " .. character.y, character.x, character.y + character.h + 70)
 
-    love.graphics.print({{1, 1, 1, character.damage_text_opacity}, character.damage_text},
+    love.graphics.print({ { 1, 1, 1, character.damage_text_opacity }, character.damage_text },
         character.x + character.w + 10, character.y - 10, 0, 3)
 
     draw_health_bar(character.health_points / character.max_health_points, character.x, character.y + character.h + 10)
@@ -166,38 +167,8 @@ function draw_character_action_menu(character, index)
                 selectable_enemies = enemies_alive(enemies)
                 local random_enemy = selectable_enemies[math.random(1, #selectable_enemies)]
 
-                local prev_coordinates = {
-                    x = character.x,
-                    y = character.y
-                }
-
                 table.insert(action_queue, {
-                    steps = {function()
-                        table.insert(tweens, tween.new(0.5, character, {
-                            x = random_enemy.x,
-                            y = random_enemy.y + 30
-                        }, "linear"))
-                    end, function()
-                        random_enemy.white_progress = 1
-                        love.audio.play("assets/sounds/attack-alt.ogg", "stream")
-                    end, function()
-                        table.insert(tweens, tween.new(0.4, random_enemy, {
-                            white_progress = 0
-                        }, "linear"))
-                        table.insert(tweens, tween.new(0.2, random_enemy, {
-                            health_points = math.max(0, random_enemy.health_points - 10)
-                        }, "linear"))
-                        random_enemy.damage_text = 10
-                        random_enemy.damage_text_opacity = 1
-                    end, function()
-                        table.insert(tweens, tween.new(0.5, character, {
-                            x = prev_coordinates.x,
-                            y = prev_coordinates.y
-                        }, "linear"))
-                        table.insert(tweens, tween.new(0.1, random_enemy, {
-                            damage_text_opacity = 0
-                        }, "linear"))
-                    end}
+                    steps = melee_attack_steps(character, random_enemy)
                 })
             end
         end
