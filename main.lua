@@ -3,6 +3,7 @@ require "character"
 require "enemy"
 require "gamestate"
 
+local tween = require 'lib/tween'
 local anim8 = require 'lib/anim8'
 local SlabRegion = require 'lib/Slab/Internal/UI/Region'
 local Slab = require 'lib/Slab'
@@ -69,14 +70,6 @@ function change_state(kind)
             current_action = current_action
         }
     end
-end
-
-function game_is_idle()
-    return game_state.kind == STATE_IDLE
-end
-
-function game_is_action()
-    return game_state.kind == STATE_ACTION
 end
 
 function love.load()
@@ -201,10 +194,23 @@ function love.update(dt)
     elseif game_is_action() then
         assert(current_action)
 
+        if current_action.tween then
+            local complete = current_action.tween:update(dt)
+
+            if complete then
+                current_action.tween = tween.new(0.5, current_action.target_entity, {
+                    x = current_action.target_entity.x - 10
+                })
+            end
+        end
+
         if current_action.kind == "attack" then
             if not current_action.did_fx then
                 current_action.did_fx = true
                 current_action.target_entity.is_getting_attacked = true
+                current_action.tween = tween.new(0.3, current_action.target_entity, {
+                    x = current_action.target_entity.x + 10
+                }, "outBounce")
                 love.audio.play("assets/sounds/attack-alt.ogg", "stream")
             end
 
