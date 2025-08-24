@@ -28,7 +28,9 @@ function new_character(args)
         health_points = 100,
         max_magic_points = 50,
         magic_points = 50,
-        white_progress = 0
+        white_progress = 0,
+        damage_text = 0,
+        damage_text_opacity = 0
     }
 
     if args then
@@ -82,6 +84,9 @@ function draw_character(character)
 
     love.graphics.print("x: " .. character.x, character.x, character.y + character.h + 50)
     love.graphics.print("y: " .. character.y, character.x, character.y + character.h + 70)
+
+    love.graphics.print({{1, 1, 1, character.damage_text_opacity}, character.damage_text},
+        character.x + character.w + 10, character.y - 10, 0, 3)
 
     draw_health_bar(character.health_points / character.max_health_points, character.x, character.y + character.h + 10)
     draw_cooldown_bar(character.cooldown_progress, character.x, character.y + character.h + 20)
@@ -176,16 +181,21 @@ function draw_character_action_menu(character, index)
                         random_enemy.white_progress = 1
                         love.audio.play("assets/sounds/attack-alt.ogg", "stream")
                     end, function()
-                        table.insert(tweens, tween.new(0.1, random_enemy, {
+                        table.insert(tweens, tween.new(0.4, random_enemy, {
                             white_progress = 0
                         }, "linear"))
                         table.insert(tweens, tween.new(0.2, random_enemy, {
                             health_points = math.max(0, random_enemy.health_points - 10)
                         }, "linear"))
+                        random_enemy.damage_text = 10
+                        random_enemy.damage_text_opacity = 1
                     end, function()
                         table.insert(tweens, tween.new(0.5, character, {
                             x = prev_coordinates.x,
                             y = prev_coordinates.y
+                        }, "linear"))
+                        table.insert(tweens, tween.new(0.1, random_enemy, {
+                            damage_text_opacity = 0
                         }, "linear"))
                     end}
                 })

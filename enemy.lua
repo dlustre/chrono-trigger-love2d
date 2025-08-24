@@ -21,7 +21,9 @@ function new_enemy(args)
         health_points = 100,
         max_magic_points = 50,
         magic_points = 50,
-        white_progress = 0
+        white_progress = 0,
+        damage_text = 0,
+        damage_text_opacity = 0
     }
 
     if args then
@@ -49,6 +51,9 @@ function draw_enemy(enemy)
         enemy.x, enemy.y - 20)
     love.graphics.print("x: " .. enemy.x, enemy.x, enemy.y + enemy.h + 50)
     love.graphics.print("y: " .. enemy.y, enemy.x, enemy.y + enemy.h + 70)
+
+    love.graphics.print({{1, 1, 1, enemy.damage_text_opacity}, enemy.damage_text}, enemy.x + enemy.w + 10, enemy.y - 10,
+        0, 3)
 
     draw_health_bar(enemy.health_points / enemy.max_health_points, enemy.x, enemy.y + enemy.h + 10)
     draw_cooldown_bar(enemy.cooldown_progress, enemy.x, enemy.y + enemy.h + 20)
@@ -101,7 +106,7 @@ function update_enemy(enemy, dt, index)
         enemy_reset_cooldown(enemy)
 
         selectable_characters = characters_alive(characters)
-        random_character = selectable_characters[math.random(1, #selectable_characters)]
+        local random_character = selectable_characters[math.random(1, #selectable_characters)]
 
         local prev_coordinates = {
             x = enemy.x,
@@ -118,16 +123,21 @@ function update_enemy(enemy, dt, index)
                 random_character.white_progress = 1
                 love.audio.play("assets/sounds/attack-alt.ogg", "stream")
             end, function()
-                table.insert(tweens, tween.new(0.1, random_character, {
+                table.insert(tweens, tween.new(0.4, random_character, {
                     white_progress = 0
                 }, "linear"))
                 table.insert(tweens, tween.new(0.2, random_character, {
                     health_points = math.max(0, random_character.health_points - 10)
                 }, "linear"))
+                random_character.damage_text = 10
+                random_character.damage_text_opacity = 1
             end, function()
                 table.insert(tweens, tween.new(0.5, enemy, {
                     x = prev_coordinates.x,
                     y = prev_coordinates.y
+                }, "linear"))
+                table.insert(tweens, tween.new(0.1, random_character, {
+                    damage_text_opacity = 0
                 }, "linear"))
             end}
         })
