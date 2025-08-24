@@ -159,7 +159,7 @@ function draw_character_action_menu(character, index)
                 character_reset_cooldown(character)
 
                 selectable_enemies = enemies_alive(enemies)
-                random_enemy = selectable_enemies[math.random(1, #selectable_enemies)]
+                local random_enemy = selectable_enemies[math.random(1, #selectable_enemies)]
 
                 local prev_coordinates = {
                     x = character.x,
