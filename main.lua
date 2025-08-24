@@ -5,7 +5,6 @@ require "gamestate"
 
 local tween = require 'lib/tween'
 local anim8 = require 'lib/anim8'
-local SlabRegion = require 'lib/Slab/Internal/UI/Region'
 local Slab = require 'lib/Slab'
 
 function rgb_to_love(r, g, b)
@@ -93,20 +92,20 @@ function love.load()
     character_1 = new_character({
         name = "Crono",
         x = 200,
-        y = 250,
+        y = 500,
         animation = up_animation
     })
     character_2 = new_character({
         name = "Marley",
         x = 400,
-        y = 250,
+        y = 500,
         cooldown_speed_sec = 0.4,
         animation = up_animation
     })
     character_3 = new_character({
         name = "Ayla",
         x = 600,
-        y = 250,
+        y = 500,
         cooldown_speed_sec = 0.2,
         animation = up_animation
     })
@@ -115,27 +114,28 @@ function love.load()
     enemy_1 = new_enemy({
         name = "Slime",
         x = 190,
-        y = 80,
+        y = 200,
         cooldown_speed_sec = 0.4,
         animation = down_animation
     })
     enemy_2 = new_enemy({
         name = "Bat",
         x = 402,
-        y = 80,
+        y = 200,
         cooldown_speed_sec = 0.3,
         animation = down_animation
     })
     enemy_3 = new_enemy({
         name = "Bug",
         x = 609,
-        y = 80,
+        y = 200,
         cooldown_speed_sec = 0.35,
         animation = down_animation
     })
     enemies = {enemy_1, enemy_2, enemy_3}
 
     action_queue = {}
+    tweens = {}
 
     current_action = nil
 
@@ -148,6 +148,15 @@ end
 
 function love.update(dt)
     require("lurker").update()
+
+    for index, tween in ipairs(tweens) do
+        tween:update(dt)
+
+        if tween.clock >= tween.duration then
+            table.remove(tweens, index)
+        end
+    end
+
     Slab.Update(dt)
 
     Slab.BeginWindow('CharacterWindow', {
@@ -194,23 +203,13 @@ function love.update(dt)
     elseif game_is_action() then
         assert(current_action)
 
-        if current_action.tween then
-            local complete = current_action.tween:update(dt)
-
-            if complete then
-                current_action.tween = tween.new(0.5, current_action.target_entity, {
-                    x = current_action.target_entity.x - 10
-                })
-            end
-        end
-
         if current_action.kind == "attack" then
             if not current_action.did_fx then
                 current_action.did_fx = true
                 current_action.target_entity.is_getting_attacked = true
-                current_action.tween = tween.new(0.3, current_action.target_entity, {
+                table.insert(tweens, tween.new(0.3, current_action.target_entity, {
                     x = current_action.target_entity.x + 10
-                }, "outBounce")
+                }, "outBounce"))
                 love.audio.play("assets/sounds/attack-alt.ogg", "stream")
             end
 
@@ -224,7 +223,14 @@ function love.update(dt)
                 assert(target_entity.health_points and target_entity.health_points > 0 and current_action.damage and
                            current_action.damage >= 0)
 
-                target_entity.health_points = math.max(0, target_entity.health_points - current_action.damage)
+                table.insert(tweens, tween.new(0.5, target_entity, {
+                    x = target_entity.x - 10
+                }, "linear"))
+
+                table.insert(tweens, tween.new(0.2, target_entity, {
+                    health_points = target_entity.health_points - current_action.damage
+                }, "linear"))
+
                 change_state(STATE_IDLE)
                 current_action = nil
             end
@@ -253,8 +259,6 @@ function draw_diagnostics()
     for index, action in ipairs(action_queue) do
         love.graphics.print(action, 10, 70 * index)
     end
-
-    love.graphics.print("Hot region: " .. SlabRegion.GetHotInstanceId(), 10, 100)
 end
 
 function love.draw()
