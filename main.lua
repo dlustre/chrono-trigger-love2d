@@ -3,12 +3,31 @@ require "character"
 require "enemy"
 require "gamestate"
 
-local tween = require 'lib/tween'
 local anim8 = require 'lib/anim8'
 local Slab = require 'lib/Slab'
+local sparks_particle_effect = require 'particle-effects/sparks'
+
+function init_or_reset_particles()
+    for _, particle_data in ipairs(sparks_particle_effect) do
+        -- Note that particle systems are already started when created, so we
+        -- don't need to call particleSystem:start() at any point.
+        local particle_system = particle_data.system
+
+        particle_system:reset()
+        particle_system:start()
+        particle_system:setPosition(sparks_particle_effect.x + particle_data.x,
+            sparks_particle_effect.y + particle_data.y)
+
+        for step = 1, particle_data.kickStartSteps do -- kickStartSteps may be 0.
+            particle_system:update(particle_data.kickStartDt)
+        end
+
+        particle_system:emit(particle_data.emitAtStart) -- emitAtStart may be 0.
+    end
+end
 
 function rgb_to_love(r, g, b)
-    return {r / 255, g / 255, b / 255}
+    return { r / 255, g / 255, b / 255 }
 end
 
 WINDOW_WIDTH = 256 * 4
@@ -37,22 +56,7 @@ ANCHORS = {
     }
 }
 
-CORNFLOWER_BLUE = {0.392, 0.584, 0.929}
-
-function change_state(kind)
-    if kind == STATE_IDLE then
-        game_state = {
-            kind = STATE_IDLE
-        }
-    elseif kind == STATE_ACTION then
-        assert(current_action)
-
-        game_state = {
-            kind = STATE_ACTION,
-            current_action = current_action
-        }
-    end
-end
+CORNFLOWER_BLUE = { 0.392, 0.584, 0.929 }
 
 function love.load()
     love.graphics.setDefaultFilter("nearest", "nearest")
@@ -92,7 +96,7 @@ function love.load()
         cooldown_speed_sec = 0.2,
         animation = up_animation
     })
-    characters = {character_1, character_2, character_3}
+    characters = { character_1, character_2, character_3 }
 
     enemy_1 = new_enemy({
         name = "Slime",
@@ -115,7 +119,7 @@ function love.load()
         cooldown_speed_sec = 0.35,
         animation = down_animation
     })
-    enemies = {enemy_1, enemy_2, enemy_3}
+    enemies = { enemy_1, enemy_2, enemy_3 }
 
     action_queue = {}
     tweens = {}
@@ -124,9 +128,14 @@ function love.load()
 
     Slab.Initialize()
 
-    -- bgm = love.audio.play("assets/sounds/battle.mp3", "stream", true)
+    bgm = love.audio.play("assets/sounds/battle.mp3", "stream", true)
 
     background = love.graphics.newImage("assets/backgrounds/background.png")
+
+    particle_coordinates = {
+        x = WINDOW_WIDTH * 4,
+        y = WINDOW_HEIGHT * 4
+    }
 end
 
 function love.update(dt)
@@ -138,6 +147,10 @@ function love.update(dt)
         if tween.clock >= tween.duration then
             table.remove(tweens, index)
         end
+    end
+
+    for _, particle_data in ipairs(sparks_particle_effect) do
+        particle_data.system:update(dt)
     end
 
     Slab.Update(dt)
@@ -199,7 +212,6 @@ function love.update(dt)
         end
 
         current_step()
-
     else
         error("unknown game state")
     end
@@ -209,15 +221,6 @@ function draw_diagnostics()
     love.graphics.setColor(0, 0.4, 0.6)
     love.graphics.print("state: " .. game_state.kind, 10, 10)
 
-    -- if current_action then
-    --     assert(current_action.actor_entity.name)
-    --     assert(current_action.target_entity.name)
-
-    --     love.graphics.print("current_action: " .. (current_action.actor_entity.name) .. " " .. (current_action.kind) ..
-    --                             " -> " .. (current_action.target_entity.name) .. " " .. (current_action.duration_sec),
-    --         10, 30)
-    -- end
-
     love.graphics.print("action_queue: " .. #action_queue, 10, 50)
     for index, action in ipairs(action_queue) do
         love.graphics.print(action, 10, 70 * index)
@@ -226,7 +229,16 @@ end
 
 function love.draw()
     love.graphics.draw(background, 0, 0, 0, 4)
+
+    for _, particle_data in ipairs(sparks_particle_effect) do
+        love.graphics.setBlendMode(particle_data.blendMode)
+        love.graphics.setShader(particle_data.shader)
+        love.graphics.draw(particle_data.system, particle_coordinates.x, particle_coordinates.y)
+    end
+
     draw_diagnostics()
+
+    love.graphics.setBlendMode("alpha")
 
     for _, character in ipairs(characters) do
         draw_character_if_alive(character)
