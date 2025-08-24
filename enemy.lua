@@ -18,7 +18,8 @@ function new_enemy(args)
         max_health_points = 100,
         health_points = 100,
         max_magic_points = 50,
-        magic_points = 50
+        magic_points = 50,
+        is_getting_attacked = false
     }
 
     if args then
@@ -31,8 +32,16 @@ function new_enemy(args)
 end
 
 function draw_enemy(enemy)
-    love.graphics.setColor(.6, 0, .2)
-    love.graphics.rectangle("fill", enemy.x, enemy.y, enemy.w, enemy.h)
+    love.graphics.setColor(1, 1, 1)
+
+    assert(enemy.animation)
+
+    love.graphics.setShader(white_shader)
+    white_shader:send("WhiteFactor", enemy.is_getting_attacked and 1 or 0)
+
+    enemy.animation:draw(chrono_sheet, enemy.x, enemy.y, 0, 4)
+
+    love.graphics.setShader()
 
     love.graphics.print(enemy.name .. " " .. "(" .. enemy.health_points .. "/" .. enemy.max_health_points .. ")",
         enemy.x, enemy.y - 20)
@@ -97,7 +106,7 @@ function update_enemy(enemy, dt, index)
             actor_entity = enemy,
             target_entity = random_character,
             damage = 5,
-            played_sound = false
+            did_fx = false
         }))
     end
 

@@ -2,12 +2,15 @@ local Slab = require 'lib/Slab'
 
 require "cooldown-bar"
 require "health-bar"
+require "shader"
 
 CHARACTER_HEIGHT = 100
 CHARACTER_WIDTH = 50
 
 CHARACTER_ACTION_MENU_WIDTH = 25
 CHARACTER_ACTION_MENU_HEIGHT = 100
+
+CHARACTER_ACTION_OPTIONS = {"Attack", "Combo", "Item"}
 
 function new_character(args)
     enemy = {
@@ -23,7 +26,8 @@ function new_character(args)
         max_health_points = 100,
         health_points = 100,
         max_magic_points = 50,
-        magic_points = 50
+        magic_points = 50,
+        is_getting_attacked = false
     }
 
     if args then
@@ -64,8 +68,16 @@ function character_reset_cooldown(character)
 end
 
 function draw_character(character)
-    love.graphics.setColor(.6, 0, .2)
-    love.graphics.rectangle("fill", character.x, character.y, character.w, character.h)
+    love.graphics.setColor(1, 1, 1)
+
+    assert(character.animation)
+
+    love.graphics.setShader(white_shader)
+    white_shader:send("WhiteFactor", character.is_getting_attacked and 1 or 0)
+
+    character.animation:draw(chrono_sheet, character.x, character.y, 0, 4)
+
+    love.graphics.setShader()
 
     love.graphics.print("x: " .. character.x, character.x, character.y + character.h + 50)
     love.graphics.print("y: " .. character.y, character.x, character.y + character.h + 70)
@@ -85,6 +97,8 @@ function character_is_ready(character)
 end
 
 function update_character(character, dt, index)
+    character.animation:update(dt)
+
     local function update_idle(character, dt)
         character.prev_cooldown_progress = character.cooldown_progress
         character.cooldown_progress = math.min(1, character.cooldown_progress + dt * character.cooldown_speed_sec)
@@ -151,7 +165,7 @@ function draw_character_action_menu(character, index)
                     actor_entity = character,
                     target_entity = random_enemy,
                     damage = 10,
-                    played_sound = false
+                    did_fx = false
                 }))
             end
         end

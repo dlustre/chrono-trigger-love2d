@@ -1,17 +1,18 @@
 require "sound-manager"
 require "character"
 require "enemy"
+require "gamestate"
 
+local anim8 = require 'lib/anim8'
 local SlabRegion = require 'lib/Slab/Internal/UI/Region'
-local SlabDebug = require 'lib/Slab/SlabDebug'
-local SlabWindow = require 'lib/Slab/Internal/UI/Window'
+local Slab = require 'lib/Slab'
 
 function rgb_to_love(r, g, b)
     return {r / 255, g / 255, b / 255}
 end
 
-WINDOW_WIDTH = 1920 / 1.5
-WINDOW_HEIGHT = 1080 / 1.5
+WINDOW_WIDTH = 256 * 4
+WINDOW_HEIGHT = 223 * 4
 
 ANCHORS = {
     CENTER = {
@@ -36,19 +37,12 @@ ANCHORS = {
     }
 }
 
-STATE_IDLE = "idle"
-STATE_ACTION = "action"
-
 CORNFLOWER_BLUE = {0.392, 0.584, 0.929}
-
-CHARACTER_ACTION_OPTIONS = {"Attack", "Combo", "Item"}
-
-local Slab = require 'lib/Slab'
 
 function new_action(args)
     action = {
         kind = "attack",
-        duration_sec = 1,
+        duration_sec = 0.5,
         actor_entity = nil,
         target_entity = nil
     }
@@ -86,6 +80,8 @@ function game_is_action()
 end
 
 function love.load()
+    love.graphics.setDefaultFilter("nearest", "nearest")
+
     love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT)
     love.graphics.setBackgroundColor(CORNFLOWER_BLUE)
 
@@ -93,22 +89,33 @@ function love.load()
         kind = STATE_IDLE
     }
 
+    chrono_sheet = love.graphics.newImage("assets/sprites/chrono.png")
+
+    chrono_down_grid = anim8.newGrid(20, 36, chrono_sheet:getWidth(), chrono_sheet:getHeight(), 275, 13, 6)
+    chrono_grid = anim8.newGrid(20, 36, chrono_sheet:getWidth(), chrono_sheet:getHeight(), 277, 13 + 45, 6)
+
+    up_animation = anim8.newAnimation(chrono_grid(1, 1), 0.7)
+    down_animation = anim8.newAnimation(chrono_down_grid(1, 1), 0.7)
+
     character_1 = new_character({
         name = "Crono",
         x = 200,
-        y = 250
+        y = 250,
+        animation = up_animation
     })
     character_2 = new_character({
         name = "Marley",
         x = 400,
         y = 250,
-        cooldown_speed_sec = 0.4
+        cooldown_speed_sec = 0.4,
+        animation = up_animation
     })
     character_3 = new_character({
         name = "Ayla",
         x = 600,
         y = 250,
-        cooldown_speed_sec = 0.2
+        cooldown_speed_sec = 0.2,
+        animation = up_animation
     })
     characters = {character_1, character_2, character_3}
 
@@ -116,19 +123,22 @@ function love.load()
         name = "Slime",
         x = 190,
         y = 80,
-        cooldown_speed_sec = 0.4
+        cooldown_speed_sec = 0.4,
+        animation = down_animation
     })
     enemy_2 = new_enemy({
         name = "Bat",
         x = 402,
         y = 80,
-        cooldown_speed_sec = 0.3
+        cooldown_speed_sec = 0.3,
+        animation = down_animation
     })
     enemy_3 = new_enemy({
         name = "Bug",
         x = 609,
         y = 80,
-        cooldown_speed_sec = 0.35
+        cooldown_speed_sec = 0.35,
+        animation = down_animation
     })
     enemies = {enemy_1, enemy_2, enemy_3}
 
@@ -139,6 +149,8 @@ function love.load()
     Slab.Initialize()
 
     -- bgm = love.audio.play("assets/sounds/battle.mp3", "stream", true)
+
+    background = love.graphics.newImage("assets/backgrounds/background.png")
 end
 
 function love.update(dt)
@@ -163,9 +175,7 @@ function love.update(dt)
         StretchW = true
     })
     for index, value in ipairs(characters) do
-        Slab.BeginListBoxItem(index, {
-            Selected = Selected == index
-        })
+        Slab.BeginListBoxItem(index)
         Slab.Text(value.name .. " " .. character_display_health(value) .. " " .. character_display_magic(value))
 
         Slab.EndListBoxItem()
@@ -192,8 +202,9 @@ function love.update(dt)
         assert(current_action)
 
         if current_action.kind == "attack" then
-            if not current_action.played_sound then
-                current_action.played_sound = true
+            if not current_action.did_fx then
+                current_action.did_fx = true
+                current_action.target_entity.is_getting_attacked = true
                 love.audio.play("assets/sounds/attack-alt.ogg", "stream")
             end
 
@@ -201,6 +212,8 @@ function love.update(dt)
 
             if current_action.duration_sec <= 0 then
                 target_entity = current_action.target_entity
+
+                target_entity.is_getting_attacked = false
 
                 assert(target_entity.health_points and target_entity.health_points > 0 and current_action.damage and
                            current_action.damage >= 0)
@@ -218,7 +231,7 @@ function love.update(dt)
 end
 
 function draw_diagnostics()
-    love.graphics.setColor(0, 0.4, 0.4)
+    love.graphics.setColor(0, 0.4, 0.6)
     love.graphics.print("state: " .. game_state.kind, 10, 10)
 
     if current_action then
@@ -239,9 +252,8 @@ function draw_diagnostics()
 end
 
 function love.draw()
+    love.graphics.draw(background, 0, 0, 0, 4)
     draw_diagnostics()
-
-    love.graphics.setColor(0, 0.4, 0.4)
 
     for _, character in ipairs(characters) do
         draw_character_if_alive(character)

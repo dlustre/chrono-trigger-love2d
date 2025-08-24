@@ -9,6 +9,7 @@ do
         if type(what) ~= "userdata" or not what:typeOf("Source") then
             src = love.audio.newSource(what, how)
             src:setLooping(loop or false)
+            src:setVolume(0.5)
         end
 
         play(src)
