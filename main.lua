@@ -191,17 +191,26 @@ function love.update(dt)
     elseif game_is_action() then
         assert(current_action)
 
-        current_action.duration_sec = math.max(0, current_action.duration_sec - dt)
+        if current_action.kind == "attack" then
+            if not current_action.played_sound then
+                current_action.played_sound = true
+                love.audio.play("assets/sounds/attack-alt.ogg", "stream")
+            end
 
-        if current_action.duration_sec <= 0 then
-            target_entity = current_action.target_entity
+            current_action.duration_sec = math.max(0, current_action.duration_sec - dt)
 
-            assert(target_entity.health_points and target_entity.health_points > 0 and current_action.damage and
-                       current_action.damage >= 0)
+            if current_action.duration_sec <= 0 then
+                target_entity = current_action.target_entity
 
-            target_entity.health_points = math.max(0, target_entity.health_points - current_action.damage)
-            change_state(STATE_IDLE)
-            current_action = nil
+                assert(target_entity.health_points and target_entity.health_points > 0 and current_action.damage and
+                           current_action.damage >= 0)
+
+                target_entity.health_points = math.max(0, target_entity.health_points - current_action.damage)
+                change_state(STATE_IDLE)
+                current_action = nil
+            end
+        else
+            error("unknown action kind")
         end
     else
         error("unknown game state")

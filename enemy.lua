@@ -96,7 +96,8 @@ function update_enemy(enemy, dt, index)
             kind = "attack",
             actor_entity = enemy,
             target_entity = random_character,
-            damage = 5
+            damage = 5,
+            played_sound = false
         }))
     end
 

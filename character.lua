@@ -150,7 +150,8 @@ function draw_character_action_menu(character, index)
                     kind = "attack",
                     actor_entity = character,
                     target_entity = random_enemy,
-                    damage = 10
+                    damage = 10,
+                    played_sound = false
                 }))
             end
         end
